@@ -67,6 +67,7 @@ Row {data-height=600}
 ### Chart 1
 
 ```{r}
+ggplot(data,aes(carat,price,color=color))+geom_point()
 ```
 
 Row {data-height=400}
