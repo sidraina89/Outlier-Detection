@@ -12,13 +12,40 @@ library(flexdashboard)
 
 ```{r}
 library(ggplot2)
-data <-diamonds
+data <-data.frame(diamonds)
+var <- "price"
 ```
 
 
-
-Tukey's test
+Tukey's test {data-orientation=rows}
 =====================================  
+
+
+```{r}
+#function: outlier detection based on Tukey's test
+
+tukey_test <- function(data,var){
+    #Calculate Q1 (25th percentile of the data) for the given vairiable
+    Q1 = quantile(data[,var],0.25)
+    
+    #Calculate Q3 (75th percentile of the data) for the given variable
+    Q3 = quantile(data[,var],0.75)
+    
+    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
+    step = 1.5*(Q3-Q1)
+    
+    outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
+    
+    return(outliers)
+}
+```
+
+
+```{r results="hide"}
+#Outliers detected
+outliers <-tukey_test(data,var)
+```
+
 
 Inputs {.sidebar}
 -------------------------------------
