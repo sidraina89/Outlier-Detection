@@ -33,7 +33,7 @@ Column {data-width=650}
 ### Chart A
 
 ```{r}
-
+ggplot(data=data,aes(price))+ geom_histogram()
 ```
 
 Column {data-width=350}
