@@ -58,24 +58,39 @@ sliderInput("nbBins", label = "Number of bins:",
 ```
 
 ```{r results="hide"}
-#Outliers detected
-outliers<-tukey_test(data,var)
+#outliers detected
+#outliers<-tukey_test(data,var)
 ```
+
+```{r}
+
+#outliers <-reactiveValues({tukey_test(data,input$var)})
+#out<reactiveValues()
+outliers <- reactive({
+  tukey_test(data,input$var)
+  })
+
+```
+
 
 Row
 -----------------------------------------------------------------------
 
 ### Number of Outliers
 ```{r}
-outliers_nb <- sum(outliers)
-valueBox(outliers_nb,color="green")
+renderValueBox({
+  outliers_nb <- sum(outliers())
+  valueBox(outliers_nb,color="green")
+})
 ```
 
 ### Proportion of Outliers
 ```{r}
-outliers_rate <- round(outliers_nb/nrow(data)*100,digits = 1)
-outliers_rate_format <- paste(outliers_rate,"%")
-valueBox(outliers_rate_format,color="green")
+renderValueBox({
+  outliers_rate <- round(sum(outliers())/nrow(data)*100,digits = 1)
+  outliers_rate_format <- paste(outliers_rate,"%")
+  valueBox(outliers_rate_format,color="green")
+})
 ```
 
 
@@ -86,11 +101,10 @@ Column {data-width=650}
 
 ```{r}
 renderPlotly({
-  p<- ggplot(data=data,aes_string(input$var)) +
-  geom_histogram(bins=as.numeric(input$nbBins))
-  ggplotly(p)
-  
-})
+   p<- ggplot(data=data,aes_string(input$var)) +
+   geom_histogram(bins=as.numeric(input$nbBins))
+   ggplotly(p)
+    })
 ```
 
 Column {data-width=350}
@@ -99,7 +113,9 @@ Column {data-width=350}
 ### Table with outliers
 
 ```{r}
-knitr::kable(data[outliers,], format ="markdown")
+renderTable({
+    data[outliers(),]
+})
 ```
 
 
