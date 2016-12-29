@@ -17,7 +17,10 @@ library(plotly)
 
 ```{r}
 data <-data.frame(diamonds)
-var <- "price"
+#Identify numeric variables
+nums <- sapply(data, is.numeric)
+#Keep only numeric variables
+data <- data[,nums]
 ```
 
 
@@ -35,7 +38,7 @@ tukey_test <- function(data,var){
     #Calculate Q3 (75th percentile of the data) for the given variable
     Q3 = quantile(data[,var],0.75)
     
-    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
+    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile       range)
     step = 1.5*(Q3-Q1)
     
     outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
@@ -57,19 +60,11 @@ sliderInput("nbBins", label = "Number of bins:",
             min = 1, max = 100, value = 30, step = 1)
 ```
 
+
 ```{r results="hide"}
-#outliers detected
-#outliers<-tukey_test(data,var)
-```
-
-```{r}
-
-#outliers <-reactiveValues({tukey_test(data,input$var)})
-#out<reactiveValues()
 outliers <- reactive({
   tukey_test(data,input$var)
   })
-
 ```
 
 
@@ -106,7 +101,6 @@ renderPlotly({
                   colour = "blue") +
     ggtitle(paste("Distribution of",input$var))
  
-   
    ggplotly(p)
     })
 ```
