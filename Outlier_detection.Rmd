@@ -56,6 +56,23 @@ Inputs {.sidebar}
 # shiny inputs defined here
 ```
 
+Row
+-----------------------------------------------------------------------
+
+### Number of Outliers
+```{r}
+outliers_nb <- sum(outliers)
+valueBox(outliers_nb,color="green")
+```
+
+### Proportion of Outliers
+```{r}
+outliers_rate <- round(outliers_nb/nrow(data)*100,digits = 1)
+outliers_rate_format <- paste(outliers_rate,"%")
+valueBox(outliers_rate_format,color="green")
+```
+
+
 Column {data-width=650}
 -----------------------------------------------------------------------
 
