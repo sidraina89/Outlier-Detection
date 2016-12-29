@@ -102,7 +102,11 @@ Column {data-width=650}
 ```{r}
 renderPlotly({
    p<- ggplot(data=data,aes_string(input$var)) +
-   geom_histogram(bins=as.numeric(input$nbBins))
+   geom_histogram(bins=as.numeric(input$nbBins),
+                  colour = "blue") +
+    ggtitle(paste("Distribution of",input$var))
+ 
+   
    ggplotly(p)
     })
 ```
