@@ -1,55 +1,107 @@
 ---
 title: "Outlier Detection"
 output: 
-  flexdashboard::flex_dashboard:
-    orientation: columns
-    vertical_layout: fill
+    flexdashboard::flex_dashboard:
+    #orientation: columns
+    vertical_layout: scroll
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
+library(markdown)
+library(shiny)
+library(ggplot2)
+library(plotly)
 ```
 
 ```{r}
-library(ggplot2)
-data <-diamonds
+data <-data.frame(diamonds)
+var <- "price"
 ```
 
 
-
-Tukey's test
+Tukey's test {data-orientation=rows}
 =====================================  
+
+
+```{r}
+#function: outlier detection based on Tukey's test
+
+tukey_test <- function(data,var){
+    #Calculate Q1 (25th percentile of the data) for the given vairiable
+    Q1 = quantile(data[,var],0.25)
+    
+    #Calculate Q3 (75th percentile of the data) for the given variable
+    Q3 = quantile(data[,var],0.75)
+    
+    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
+    step = 1.5*(Q3-Q1)
+    
+    outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
+    
+    return(outliers)
+}
+```
+
 
 Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
 # shiny inputs defined here
+
+selectInput('var', 'Select variable:', names(data))
+
+sliderInput("nbBins", label = "Number of bins:",
+            min = 1, max = 100, value = 30, step = 1)
 ```
+
+```{r results="hide"}
+#Outliers detected
+outliers<-tukey_test(data,var)
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Number of Outliers
+```{r}
+outliers_nb <- sum(outliers)
+valueBox(outliers_nb,color="green")
+```
+
+### Proportion of Outliers
+```{r}
+outliers_rate <- round(outliers_nb/nrow(data)*100,digits = 1)
+outliers_rate_format <- paste(outliers_rate,"%")
+valueBox(outliers_rate_format,color="green")
+```
+
 
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Histogram {data-height=600}
 
 ```{r}
-
+renderPlotly({
+  p<- ggplot(data=data,aes_string(input$var)) +
+  geom_histogram(bins=as.numeric(input$nbBins))
+  ggplotly(p)
+  
+})
 ```
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Chart B
+### Table with outliers
 
 ```{r}
-
+knitr::kable(data[outliers,], format ="markdown")
 ```
 
-### Chart C
-
-```{r}
-
-```
 
 Standard Deviation test {data-orientation=rows}
 =====================================     
