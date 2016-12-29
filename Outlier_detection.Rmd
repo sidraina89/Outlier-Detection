@@ -11,12 +11,11 @@ runtime: shiny
 library(flexdashboard)
 library(markdown)
 library(shiny)
+library(ggplot2)
 library(plotly)
 ```
 
 ```{r}
-library(ggplot2)
-
 data <-data.frame(diamonds)
 var <- "price"
 ```
@@ -46,19 +45,21 @@ tukey_test <- function(data,var){
 ```
 
 
-```{r results="hide"}
-#Outliers detected
-outliers <-tukey_test(data,var)
-```
-
-
 Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
 # shiny inputs defined here
+
+selectInput('var', 'Select variable:', names(data))
+
 sliderInput("nbBins", label = "Number of bins:",
             min = 1, max = 100, value = 30, step = 1)
+```
+
+```{r results="hide"}
+#Outliers detected
+outliers<-tukey_test(data,var)
 ```
 
 Row
@@ -85,8 +86,7 @@ Column {data-width=650}
 
 ```{r}
 renderPlotly({
-  
-  p<- ggplot(data=data,aes(price)) +
+  p<- ggplot(data=data,aes_string(input$var)) +
   geom_histogram(bins=as.numeric(input$nbBins))
   ggplotly(p)
   
