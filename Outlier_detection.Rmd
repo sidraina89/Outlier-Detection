@@ -1,8 +1,9 @@
 ---
 title: "Outlier Detection"
-output: flexdashboard::flex_dashboard
+output: 
+    flexdashboard::flex_dashboard:
     #orientation: columns
-    #vertical_layout: fill
+    vertical_layout: scroll
 runtime: shiny
 ---
 
@@ -10,6 +11,7 @@ runtime: shiny
 library(flexdashboard)
 library(markdown)
 library(shiny)
+library(plotly)
 ```
 
 ```{r}
@@ -79,11 +81,15 @@ valueBox(outliers_rate_format,color="green")
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Histogram {data-height=600}
 
 ```{r}
-renderPlot({ggplot(data=data,aes(price)) +
+renderPlotly({
+  
+  p<- ggplot(data=data,aes(price)) +
   geom_histogram(bins=as.numeric(input$nbBins))
+  ggplotly(p)
+  
 })
 ```
 
