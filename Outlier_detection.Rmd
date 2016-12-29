@@ -1,18 +1,19 @@
 ---
 title: "Outlier Detection"
-output: 
-  flexdashboard::flex_dashboard:
-    orientation: columns
-    vertical_layout: fill
+output: flexdashboard::flex_dashboard
+    #orientation: columns
+    #vertical_layout: fill
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
+library(markdown)
+library(shiny)
 ```
 
 ```{r}
 library(ggplot2)
-library(markdown)
 
 data <-data.frame(diamonds)
 var <- "price"
@@ -54,6 +55,8 @@ Inputs {.sidebar}
 
 ```{r}
 # shiny inputs defined here
+sliderInput("nbBins", label = "Number of bins:",
+            min = 1, max = 100, value = 30, step = 1)
 ```
 
 Row
@@ -79,7 +82,9 @@ Column {data-width=650}
 ### Chart A
 
 ```{r}
-ggplot(data=data,aes(price))+ geom_histogram()
+renderPlot({ggplot(data=data,aes(price)) +
+  geom_histogram(bins=as.numeric(input$nbBins))
+})
 ```
 
 Column {data-width=350}
