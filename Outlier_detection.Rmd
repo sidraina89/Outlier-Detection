@@ -13,11 +13,15 @@ library(markdown)
 library(shiny)
 library(ggplot2)
 library(plotly)
+library(fitdistrplus)
 ```
 
 ```{r}
 data <-data.frame(diamonds)
-var <- "price"
+#Identify numeric variables
+nums <- sapply(data, is.numeric)
+#Keep only numeric variables
+data <- data[,nums]
 ```
 
 
@@ -35,7 +39,7 @@ tukey_test <- function(data,var){
     #Calculate Q3 (75th percentile of the data) for the given variable
     Q3 = quantile(data[,var],0.75)
     
-    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
+    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile       range)
     step = 1.5*(Q3-Q1)
     
     outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
@@ -57,25 +61,32 @@ sliderInput("nbBins", label = "Number of bins:",
             min = 1, max = 100, value = 30, step = 1)
 ```
 
+
 ```{r results="hide"}
-#Outliers detected
-outliers<-tukey_test(data,var)
+outliers <- reactive({
+  tukey_test(data,input$var)
+  })
 ```
+
 
 Row
 -----------------------------------------------------------------------
 
 ### Number of Outliers
 ```{r}
-outliers_nb <- sum(outliers)
-valueBox(outliers_nb,color="green")
+renderValueBox({
+  outliers_nb <- sum(outliers())
+  valueBox(outliers_nb,color="green")
+})
 ```
 
 ### Proportion of Outliers
 ```{r}
-outliers_rate <- round(outliers_nb/nrow(data)*100,digits = 1)
-outliers_rate_format <- paste(outliers_rate,"%")
-valueBox(outliers_rate_format,color="green")
+renderValueBox({
+  outliers_rate <- round(sum(outliers())/nrow(data)*100,digits = 1)
+  outliers_rate_format <- paste(outliers_rate,"%")
+  valueBox(outliers_rate_format,color="green")
+})
 ```
 
 
@@ -84,13 +95,28 @@ Column {data-width=650}
 
 ### Histogram {data-height=600}
 
+
 ```{r}
 renderPlotly({
-  p<- ggplot(data=data,aes_string(input$var)) +
-  geom_histogram(bins=as.numeric(input$nbBins))
-  ggplotly(p)
   
-})
+  #Estimate the parameters of the distribution
+  col_data <- NULL
+  col_data <- unlist(data[, input$var])
+  fit <- fitdist(data=col_data, distr='norm')
+  params <- fit$estimate
+  
+   p<- ggplot(data=data,aes_string(input$var)) +
+       geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
+                  colour = "blue") +
+       ggtitle(paste("Distribution of",input$var)) +
+       #Overlay normal curve to histogram
+       stat_function(fun = dnorm, #x=col_data,  
+                        args=list(mean=params[1], sd=params[2]),
+                        lwd=2, col='red',alpha = 0.4)
+    
+ 
+   ggplotly(p)
+    })
 ```
 
 Column {data-width=350}
@@ -99,7 +125,9 @@ Column {data-width=350}
 ### Table with outliers
 
 ```{r}
-knitr::kable(data[outliers,], format ="markdown")
+renderTable({
+    data[outliers(),]
+})
 ```
 
 
