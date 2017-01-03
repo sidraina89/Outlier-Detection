@@ -13,6 +13,7 @@ library(markdown)
 library(shiny)
 library(ggplot2)
 library(plotly)
+library(fitdistrplus)
 ```
 
 ```{r}
@@ -94,12 +95,25 @@ Column {data-width=650}
 
 ### Histogram {data-height=600}
 
+
 ```{r}
 renderPlotly({
+  
+  #Estimate the parameters of the distribution
+  col_data <- NULL
+  col_data <- unlist(data[, input$var])
+  fit <- fitdist(data=col_data, distr='norm')
+  params <- fit$estimate
+  
    p<- ggplot(data=data,aes_string(input$var)) +
-   geom_histogram(bins=as.numeric(input$nbBins),
+       geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
                   colour = "blue") +
-    ggtitle(paste("Distribution of",input$var))
+       ggtitle(paste("Distribution of",input$var)) +
+       #Overlay normal curve to histogram
+       stat_function(fun = dnorm, #x=col_data,  
+                        args=list(mean=params[1], sd=params[2]),
+                        lwd=2, col='red',alpha = 0.4)
+    
  
    ggplotly(p)
     })
