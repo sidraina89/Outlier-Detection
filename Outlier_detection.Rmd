@@ -27,38 +27,109 @@ data <- data[,nums]
 
 
 
-Tukey's test
+Tukey's test {data-orientation=rows}
 =====================================  
+
+
+```{r}
+#function: outlier detection based on Tukey's test
+
+tukey_test <- function(data,var){
+    #Calculate Q1 (25th percentile of the data) for the given vairiable
+    Q1 = quantile(data[,var],0.25)
+    
+    #Calculate Q3 (75th percentile of the data) for the given variable
+    Q3 = quantile(data[,var],0.75)
+    
+    #Use the interquartile range to calculate an outlier step (1.5 times the interquartile       range)
+    step = 1.5*(Q3-Q1)
+    
+    outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
+    
+    return(outliers)
+}
+```
+
 
 Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
 # shiny inputs defined here
+
+selectInput('var', 'Select variable:', names(data))
+
+sliderInput("nbBins", label = "Number of bins:",
+            min = 1, max = 100, value = 30, step = 1)
 ```
+
+
+```{r results="hide"}
+outliers <- reactive({
+  tukey_test(data,input$var)
+  })
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Number of Outliers
+```{r}
+renderValueBox({
+  outliers_nb <- sum(outliers())
+  valueBox(outliers_nb,color="green")
+})
+```
+
+### Proportion of Outliers
+```{r}
+renderValueBox({
+  outliers_rate <- round(sum(outliers())/nrow(data)*100,digits = 1)
+  outliers_rate_format <- paste(outliers_rate,"%")
+  valueBox(outliers_rate_format,color="green")
+})
+```
+
 
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Histogram {data-height=600}
+
 
 ```{r}
-
+renderPlotly({
+  
+  #Estimate the parameters of the distribution
+  col_data <- NULL
+  col_data <- unlist(data[, input$var])
+  fit <- fitdist(data=col_data, distr='norm')
+  params <- fit$estimate
+  
+   p<- ggplot(data=data,aes_string(input$var)) +
+       geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
+                  colour = "blue") +
+       ggtitle(paste("Distribution of",input$var)) +
+       #Overlay normal curve to histogram
+       stat_function(fun = dnorm, #x=col_data,  
+                        args=list(mean=params[1], sd=params[2]),
+                        lwd=2, col='red',alpha = 0.4)
+    
+ 
+   ggplotly(p)
+    })
 ```
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Chart B
+### Table with outliers
 
 ```{r}
-
-```
-
-### Chart C
-
-```{r}
-
+renderTable({
+    data[outliers(),]
+})
 ```
 
 Standard Deviation test {data-orientation=rows}
@@ -68,7 +139,7 @@ Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
-selectInput('var', 'Select variable:', names(data))
+selectInput('variable', 'Select variable:', names(data))
 
 sliderInput("nbBins", label = "Number of bins:",
             min = 1, max = 100, value = 30, step = 1)
@@ -89,7 +160,7 @@ sd_test <- function(data,var)
 ```
 
 ```{r}
-outliers <- reactive({sd_test(data,input$var)})
+stdoutliers <- reactive({sd_test(data,input$variable)})
 ```
 
 
@@ -100,7 +171,7 @@ Row
 
 ```{r}
 renderValueBox({
-  no_of_outliers <- nrow(outliers()$outliers)
+  no_of_outliers <- nrow(stdoutliers()$outliers)
   valueBox(no_of_outliers,color = "green")
 })
 ```
@@ -109,7 +180,7 @@ renderValueBox({
 
 ```{r}
 renderValueBox({
-  no_of_outliers <- nrow(outliers()$outliers)
+  no_of_outliers <- nrow(stdoutliers()$outliers)
   outlier_prop <-round( no_of_outliers/nrow(data)*100,1)
   valueBox(paste(outlier_prop,"%"),color = "green")
 })
@@ -125,22 +196,22 @@ Column {data-width=650}
 col_data <- NULL
 
 renderPlot({
-  col_data <- unlist(data[,input$var])
+  col_data <- unlist(data[,input$variable])
   fit <- fitdist(data=col_data, distr='norm')
-  params <- fit$estimate
-  ggplot(data,aes_string(input$var))+geom_histogram(aes(y=..density..),color="blue",
+  param <- fit$estimate
+  ggplot(data,aes_string(input$variable))+geom_histogram(aes(y=..density..),color="blue",
                                       bins=as.numeric(input$nbBins),alpha=0.4)+
-                              geom_vline(xintercept=outliers()$avg,
+                              geom_vline(xintercept=stdoutliers()$avg,
                                          color="darkgreen")+
-                              geom_vline(xintercept=outliers()$upperThresh,
+                              geom_vline(xintercept=stdoutliers()$upperThresh,
                                          color="darkgreen")+
-                              geom_vline(xintercept=outliers()$lowerThresh,
+                              geom_vline(xintercept=stdoutliers()$lowerThresh,
                                          color="darkgreen")+
-                              geom_text(x=outliers()$avg-500,y=5000,                                    angle=90,label=paste("avg.=",round(outliers()$avg),2))+
-                              geom_text(x=outliers()$upperThresh-500,y=5000,                                   angle=90,label=paste("Upper=",round(outliers()$upperThresh),2))+
-                              geom_text(x=outliers()$lowerThresh-500,y=5000,                                   angle=90,label=paste("Lower=",round(outliers()$lowerThresh),2)) +
+                              geom_text(x=stdoutliers()$avg-500,y=5000,                                    angle=90,label=paste("avg.=",round(stdoutliers()$avg),2))+
+                              geom_text(x=stdoutliers()$upperThresh-500,y=5000,                                   angle=90,label=paste("Upper=",round(stdoutliers()$upperThresh),2))+
+                              geom_text(x=stdoutliers()$lowerThresh-500,y=5000,                                   angle=90,label=paste("Lower=",round(stdoutliers()$lowerThresh),2)) +
    stat_function(fun = dnorm,  
-                        args=list(mean=params[1], sd=params[2]),
+                        args=list(mean=param[1], sd=param[2]),
                         lwd=2, col='red',alpha = 0.4)
  
  
@@ -154,7 +225,7 @@ renderPlot({
 ### Box Plot with Outliers
 ```{r}
 renderPlot({
-  ggplot(data,aes_string(y=input$var,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
+  ggplot(data,aes_string(y=input$variable,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
  
 })
 
@@ -172,7 +243,7 @@ Column {data-width=650}
 ```{r}
 
 renderTable({
-  outliers()$outliers
+  stdoutliers()$outliers
 })
 
 ```
@@ -180,5 +251,3 @@ renderTable({
 ```{r}
 ```   
     
-
-
