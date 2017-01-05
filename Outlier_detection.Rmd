@@ -4,15 +4,25 @@ output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+runtime: shiny 
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
+library(markdown)
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(knitr)
+library(fitdistrplus)
 ```
 
 ```{r}
-library(ggplot2)
-data <-diamonds
+data <-data.frame(diamonds)
+#Identify numeric variables
+nums <- sapply(data, is.numeric)
+#Keep only numeric variables
+data <- data[,nums]
 ```
 
 
@@ -58,29 +68,117 @@ Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
-# shiny inputs defined here
-```
-   
-Row {data-height=600}
--------------------------------------
+selectInput('var', 'Select variable:', names(data))
 
-### Chart 1
+sliderInput("nbBins", label = "Number of bins:",
+            min = 1, max = 100, value = 30, step = 1)
+```
 
 ```{r}
-ggplot(data,aes(carat,price,color=color))+geom_point()
+
+sd_test <- function(data,var)
+{
+  sdfactor <- 2
+  avg <- mean(unlist(data[,var]),na.rm=T)
+  sd <- sd(unlist(data[,var]),na.rm=T)
+  upperThresh <- avg+sdfactor*sd
+  lowerThresh <- avg-sdfactor*sd
+  outliers <- data[(data[,var]>upperThresh | data[,var] < lowerThresh),]
+  return(list(outliers=outliers,avg=avg,sd=sd,upperThresh=upperThresh,lowerThresh=lowerThresh))
+}
 ```
 
-Row {data-height=400}
+```{r}
+outliers <- reactive({sd_test(data,input$var)})
+```
+
+
+Row 
+-------------------------------------
+
+### Number of Outliers
+
+```{r}
+renderValueBox({
+  no_of_outliers <- nrow(outliers()$outliers)
+  valueBox(no_of_outliers,color = "green")
+})
+```
+
+### Proportion of Outliers
+
+```{r}
+renderValueBox({
+  no_of_outliers <- nrow(outliers()$outliers)
+  outlier_prop <-round( no_of_outliers/nrow(data)*100,1)
+  valueBox(paste(outlier_prop,"%"),color = "green")
+})
+```
+   
+
+Column {data-width=650}
+-------------------------------------
+
+### Distribution Histogram
+
+```{r}
+col_data <- NULL
+
+renderPlot({
+  col_data <- unlist(data[,input$var])
+  fit <- fitdist(data=col_data, distr='norm')
+  params <- fit$estimate
+  ggplot(data,aes_string(input$var))+geom_histogram(aes(y=..density..),color="blue",
+                                      bins=as.numeric(input$nbBins),alpha=0.4)+
+                              geom_vline(xintercept=outliers()$avg,
+                                         color="darkgreen")+
+                              geom_vline(xintercept=outliers()$upperThresh,
+                                         color="darkgreen")+
+                              geom_vline(xintercept=outliers()$lowerThresh,
+                                         color="darkgreen")+
+                              geom_text(x=outliers()$avg-500,y=5000,                                    angle=90,label=paste("avg.=",round(outliers()$avg),2))+
+                              geom_text(x=outliers()$upperThresh-500,y=5000,                                   angle=90,label=paste("Upper=",round(outliers()$upperThresh),2))+
+                              geom_text(x=outliers()$lowerThresh-500,y=5000,                                   angle=90,label=paste("Lower=",round(outliers()$lowerThresh),2)) +
+   stat_function(fun = dnorm,  
+                        args=list(mean=params[1], sd=params[2]),
+                        lwd=2, col='red',alpha = 0.4)
+ 
+ 
+
+})
+ 
+    
+                         
+```
+
+### Box Plot with Outliers
+```{r}
+renderPlot({
+  ggplot(data,aes_string(y=input$var,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
+ 
+})
+
+
+```
+
+
+
+
+
+Column {data-width=650}
 -------------------------------------
    
-### Chart 2
+### Outlier Details
+```{r}
+
+renderTable({
+  outliers()$outliers
+})
+
+```
 
 ```{r}
 ```   
     
-### Chart 3
-
-```{r}
-```
 
 
