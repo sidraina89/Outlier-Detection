@@ -25,6 +25,17 @@ nums <- sapply(data, is.numeric)
 data <- data[,nums]
 ```
 
+Sidebar {.sidebar}
+===================================== 
+
+```{r}
+# shiny inputs defined here
+
+selectInput('var', 'Select variable:', names(data))
+
+sliderInput("nbBins", label = "Number of bins:",
+            min = 1, max = 100, value = 30, step = 1)
+```
 
 
 Tukey's test {data-orientation=rows}
@@ -51,17 +62,6 @@ tukey_test <- function(data,var){
 ```
 
 
-Inputs {.sidebar}
--------------------------------------
-
-```{r}
-# shiny inputs defined here
-
-selectInput('var', 'Select variable:', names(data))
-
-sliderInput("nbBins", label = "Number of bins:",
-            min = 1, max = 100, value = 30, step = 1)
-```
 
 
 ```{r results="hide"}
@@ -135,15 +135,6 @@ renderTable({
 Standard Deviation test {data-orientation=rows}
 =====================================     
 
-Inputs {.sidebar}
--------------------------------------
-
-```{r}
-selectInput('variable', 'Select variable:', names(data))
-
-sliderInput("nbBins", label = "Number of bins:",
-            min = 1, max = 100, value = 30, step = 1)
-```
 
 ```{r}
 
@@ -160,7 +151,7 @@ sd_test <- function(data,var)
 ```
 
 ```{r}
-stdoutliers <- reactive({sd_test(data,input$variable)})
+stdoutliers <- reactive({sd_test(data,input$var)})
 ```
 
 
@@ -196,10 +187,10 @@ Column {data-width=650}
 col_data <- NULL
 
 renderPlot({
-  col_data <- unlist(data[,input$variable])
+  col_data <- unlist(data[,input$var])
   fit <- fitdist(data=col_data, distr='norm')
   param <- fit$estimate
-  ggplot(data,aes_string(input$variable))+geom_histogram(aes(y=..density..),color="blue",
+  ggplot(data,aes_string(input$var))+geom_histogram(aes(y=..density..),color="blue",
                                       bins=as.numeric(input$nbBins),alpha=0.4)+
                               geom_vline(xintercept=stdoutliers()$avg,
                                          color="darkgreen")+
@@ -225,7 +216,7 @@ renderPlot({
 ### Box Plot with Outliers
 ```{r}
 renderPlot({
-  ggplot(data,aes_string(y=input$variable,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
+  ggplot(data,aes_string(y=input$var,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
  
 })
 
