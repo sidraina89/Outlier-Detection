@@ -30,6 +30,7 @@ Sidebar {.sidebar}
 
 ```{r}
 # shiny inputs defined here
+fileInput('file_data', 'Import data:',accept=c("rds"))
 
 selectInput('var', 'Select variable:', names(data))
 
