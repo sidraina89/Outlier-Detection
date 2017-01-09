@@ -104,7 +104,11 @@ Row
 ### Number of Outliers
 ```{r}
 renderValueBox({
-  outliers_nb <- sum(outliers())
+  if(is.null(input$file_data)){
+    outliers_nb <-0
+  }else{
+    outliers_nb <- sum(outliers())
+  }
   valueBox(outliers_nb,color="green")
 })
 ```
@@ -112,7 +116,11 @@ renderValueBox({
 ### Proportion of Outliers
 ```{r}
 renderValueBox({
-  outliers_rate <- round(sum(outliers())/nrow(data_in()$data)*100,digits = 1)
+   if(is.null(input$file_data)){
+    outliers_rate <-0
+  }else{
+    outliers_rate <- round(sum(outliers())/nrow(data_in()$data)*100,digits = 1)
+  }
   outliers_rate_format <- paste(outliers_rate,"%")
   valueBox(outliers_rate_format,color="green")
 })
@@ -189,7 +197,11 @@ Row
 
 ```{r}
 renderValueBox({
+  if(is.null(input$file_data)){
+    no_of_outliers <-0
+  }else{
   no_of_outliers <- nrow(stdoutliers()$outliers)
+  }
   valueBox(no_of_outliers,color = "green")
 })
 ```
@@ -198,8 +210,12 @@ renderValueBox({
 
 ```{r}
 renderValueBox({
+  if(is.null(input$file_data)){
+    outlier_prop <-0
+  }else{
   no_of_outliers <- nrow(stdoutliers()$outliers)
   outlier_prop <-round( no_of_outliers/nrow(data_in()$data)*100,1)
+  }
   valueBox(paste(outlier_prop,"%"),color = "green")
 })
 ```
