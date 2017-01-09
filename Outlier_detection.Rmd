@@ -135,6 +135,11 @@ Column {data-width=650}
 
 ```{r}
 renderPlotly({
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    p<- ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
   
   #Estimate the parameters of the distribution
   col_data <- NULL
@@ -142,7 +147,7 @@ renderPlotly({
   fit <- fitdist(data=col_data, distr='norm')
   params <- fit$estimate
   
-   p<- ggplot(data=data_in()$data,aes_string(input$var)) +
+  p<- ggplot(data=data_in()$data,aes_string(input$var)) +
        geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
                   colour = "blue") +
        ggtitle(paste("Distribution of",input$var)) +
@@ -151,9 +156,9 @@ renderPlotly({
                         args=list(mean=params[1], sd=params[2]),
                         lwd=2, col='red',alpha = 0.4)
     
- 
+  }
    ggplotly(p)
-    })
+  })
 ```
 
 Column {data-width=350}
@@ -230,10 +235,16 @@ Column {data-width=650}
 col_data <- NULL
 
 renderPlot({
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
   col_data <- unlist(data_in()$data[,input$var])
   fit <- fitdist(data=col_data, distr='norm')
   param <- fit$estimate
-  ggplot(data_in()$data,aes_string(input$var))+geom_histogram(aes(y=..density..),color="blue",
+  ggplot(data_in()$data,aes_string(input$var))+
+                              geom_histogram(aes(y=..density..),color="blue",
                                       bins=as.numeric(input$nbBins),alpha=0.4)+
                               geom_vline(xintercept=stdoutliers()$avg,
                                          color="darkgreen")+
@@ -247,9 +258,7 @@ renderPlot({
    stat_function(fun = dnorm,  
                         args=list(mean=param[1], sd=param[2]),
                         lwd=2, col='red',alpha = 0.4)
- 
- 
-
+  }
 })
  
     
@@ -259,8 +268,15 @@ renderPlot({
 ### Box Plot with Outliers
 ```{r}
 renderPlot({
-  ggplot(data_in()$data,aes_string(y=input$var,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
- 
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
+  ggplot(data_in()$data,aes_string(y=input$var,x="1"))+
+      geom_boxplot(outlier.colour = "red")+
+      coord_flip()
+  }
 })
 
 
