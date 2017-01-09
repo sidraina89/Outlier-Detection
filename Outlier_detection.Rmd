@@ -18,11 +18,27 @@ library(fitdistrplus)
 ```
 
 ```{r}
-data <-data.frame(diamonds)
-#Identify numeric variables
-nums <- sapply(data, is.numeric)
-#Keep only numeric variables
-data <- data[,nums]
+data_in <- reactive({
+
+    inFile <- input$file_data
+
+    if (is.null(inFile)) {
+
+    } else {
+
+      data<- read.csv(inFile$datapath,na.strings=c(""," ","NA"))
+
+      #Identify numeric, integer, logical, factor and character variables
+      var<- names(data)
+      type<- sapply(data, class)
+      var_numeric<- var[which(type %in% c("numeric","integer"))]
+      var_logical<- var[which(type %in% c("logical"))]
+      var_factor<- var[which(type %in% c("factor"))]
+      var_character<- var[which(type %in% c("character"))]
+    }
+
+    list(data=data, var_numeric=var_numeric, var_logical=var_logical, var_factor=var_factor, var_character=var_character)
+  })
 ```
 
 Sidebar {.sidebar}
@@ -30,11 +46,22 @@ Sidebar {.sidebar}
 
 ```{r}
 # shiny inputs defined here
+fileInput('file_data', 'Import data:',accept=c("rds"))
 
-selectInput('var', 'Select variable:', names(data))
+selectInput('var', 'Select variable:',"")
 
 sliderInput("nbBins", label = "Number of bins:",
             min = 1, max = 100, value = 30, step = 1)
+```
+
+```{r}
+observeEvent(input$file_data, {
+
+    var_numeric<- data_in()$var_numeric
+
+    updateSelectInput(session, inputId = "var", choices = c( var_numeric))
+
+  })
 ```
 
 
@@ -66,7 +93,7 @@ tukey_test <- function(data,var){
 
 ```{r results="hide"}
 outliers <- reactive({
-  tukey_test(data,input$var)
+  tukey_test(data_in()$data,input$var)
   })
 ```
 
@@ -77,7 +104,11 @@ Row
 ### Number of Outliers
 ```{r}
 renderValueBox({
-  outliers_nb <- sum(outliers())
+  if(is.null(input$file_data)){
+    outliers_nb <-0
+  }else{
+    outliers_nb <- sum(outliers())
+  }
   valueBox(outliers_nb,color="green")
 })
 ```
@@ -85,7 +116,11 @@ renderValueBox({
 ### Proportion of Outliers
 ```{r}
 renderValueBox({
-  outliers_rate <- round(sum(outliers())/nrow(data)*100,digits = 1)
+   if(is.null(input$file_data)){
+    outliers_rate <-0
+  }else{
+    outliers_rate <- round(sum(outliers())/nrow(data_in()$data)*100,digits = 1)
+  }
   outliers_rate_format <- paste(outliers_rate,"%")
   valueBox(outliers_rate_format,color="green")
 })
@@ -97,17 +132,21 @@ Column {data-width=650}
 
 ### Histogram {data-height=600}
 
-
 ```{r}
 renderPlotly({
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    p<- ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
   
   #Estimate the parameters of the distribution
   col_data <- NULL
-  col_data <- unlist(data[, input$var])
+  col_data <- unlist(data_in()$data[, input$var])
   fit <- fitdist(data=col_data, distr='norm')
   params <- fit$estimate
   
-   p<- ggplot(data=data,aes_string(input$var)) +
+  p<- ggplot(data=data_in()$data,aes_string(input$var)) +
        geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
                   colour = "blue") +
        ggtitle(paste("Distribution of",input$var)) +
@@ -116,9 +155,9 @@ renderPlotly({
                         args=list(mean=params[1], sd=params[2]),
                         lwd=2, col='red',alpha = 0.4)
     
- 
+  }
    ggplotly(p)
-    })
+  })
 ```
 
 Column {data-width=350}
@@ -128,7 +167,11 @@ Column {data-width=350}
 
 ```{r}
 renderTable({
-    data[outliers(),]
+  if(is.null(input$file_data)){
+    data.frame()
+  }else{
+    data_in()$data[outliers(),]
+  }
 })
 ```
 
@@ -141,17 +184,17 @@ Standard Deviation test {data-orientation=rows}
 sd_test <- function(data,var)
 {
   sdfactor <- 2
-  avg <- mean(unlist(data[,var]),na.rm=T)
-  sd <- sd(unlist(data[,var]),na.rm=T)
+  avg <- mean(unlist(data_in()$data[,var]),na.rm=T)
+  sd <- sd(unlist(data_in()$data[,var]),na.rm=T)
   upperThresh <- avg+sdfactor*sd
   lowerThresh <- avg-sdfactor*sd
-  outliers <- data[(data[,var]>upperThresh | data[,var] < lowerThresh),]
+  outliers <- data[(data_in()$data[,var]>upperThresh | data_in()$data[,var] < lowerThresh),]
   return(list(outliers=outliers,avg=avg,sd=sd,upperThresh=upperThresh,lowerThresh=lowerThresh))
 }
 ```
 
 ```{r}
-stdoutliers <- reactive({sd_test(data,input$var)})
+stdoutliers <- reactive({sd_test(data_in()$data,input$var)})
 ```
 
 
@@ -162,7 +205,11 @@ Row
 
 ```{r}
 renderValueBox({
+  if(is.null(input$file_data)){
+    no_of_outliers <-0
+  }else{
   no_of_outliers <- nrow(stdoutliers()$outliers)
+  }
   valueBox(no_of_outliers,color = "green")
 })
 ```
@@ -171,8 +218,12 @@ renderValueBox({
 
 ```{r}
 renderValueBox({
+  if(is.null(input$file_data)){
+    outlier_prop <-0
+  }else{
   no_of_outliers <- nrow(stdoutliers()$outliers)
-  outlier_prop <-round( no_of_outliers/nrow(data)*100,1)
+  outlier_prop <-round( no_of_outliers/nrow(data_in()$data)*100,1)
+  }
   valueBox(paste(outlier_prop,"%"),color = "green")
 })
 ```
@@ -187,10 +238,16 @@ Column {data-width=650}
 col_data <- NULL
 
 renderPlot({
-  col_data <- unlist(data[,input$var])
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
+  col_data <- unlist(data_in()$data[,input$var])
   fit <- fitdist(data=col_data, distr='norm')
   param <- fit$estimate
-  ggplot(data,aes_string(input$var))+geom_histogram(aes(y=..density..),color="blue",
+  ggplot(data_in()$data,aes_string(input$var))+
+                              geom_histogram(aes(y=..density..),color="blue",
                                       bins=as.numeric(input$nbBins),alpha=0.4)+
                               geom_vline(xintercept=stdoutliers()$avg,
                                          color="darkgreen")+
@@ -204,27 +261,27 @@ renderPlot({
    stat_function(fun = dnorm,  
                         args=list(mean=param[1], sd=param[2]),
                         lwd=2, col='red',alpha = 0.4)
- 
- 
-
+  }
 })
  
-    
-                         
 ```
 
 ### Box Plot with Outliers
 ```{r}
 renderPlot({
-  ggplot(data,aes_string(y=input$var,x="1"))+geom_boxplot(outlier.colour = "red")+coord_flip()
- 
+  #Display empty graph when there is no data
+  if(is.null(input$file_data)){
+    df <- data.frame()
+    ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  }else{
+  ggplot(data_in()$data,aes_string(y=input$var,x="1"))+
+      geom_boxplot(outlier.colour = "red")+
+      coord_flip()
+  }
 })
 
 
 ```
-
-
-
 
 
 Column {data-width=650}
@@ -232,13 +289,14 @@ Column {data-width=650}
    
 ### Outlier Details
 ```{r}
-
 renderTable({
+  if(is.null(input$file_data)){
+    data.frame()
+  }else{
   stdoutliers()$outliers
+  }
 })
 
 ```
 
-```{r}
-```   
     
