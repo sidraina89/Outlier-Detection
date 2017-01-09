@@ -132,7 +132,6 @@ Column {data-width=650}
 
 ### Histogram {data-height=600}
 
-
 ```{r}
 renderPlotly({
   #Display empty graph when there is no data
@@ -168,7 +167,11 @@ Column {data-width=350}
 
 ```{r}
 renderTable({
+  if(is.null(input$file_data)){
+    data.frame()
+  }else{
     data_in()$data[outliers(),]
+  }
 })
 ```
 
@@ -261,8 +264,6 @@ renderPlot({
   }
 })
  
-    
-                         
 ```
 
 ### Box Plot with Outliers
@@ -283,21 +284,19 @@ renderPlot({
 ```
 
 
-
-
-
 Column {data-width=650}
 -------------------------------------
    
 ### Outlier Details
 ```{r}
-
 renderTable({
+  if(is.null(input$file_data)){
+    data.frame()
+  }else{
   stdoutliers()$outliers
+  }
 })
 
 ```
 
-```{r}
-```   
     
