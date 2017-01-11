@@ -3,6 +3,8 @@
 ### Project Overview
 For this project we want to create an R [flexdashboard](http://rmarkdown.rstudio.com/flexdashboard/) in order to detect outliers based on various approaches as Tukey's test.
 
+![outlier](screenshot_dashboard.png?raw=true "outlier_screenshot")
+
 ### Install
 This project requires the following R libraries installed:
 - markdown
