@@ -84,10 +84,9 @@ tukey_test <- function(data,var){
     
     outliers <- ((data[,var] <= Q1 - step) | (data[,var] >= Q3 + step))
     
-    return(outliers)
+    return(list(outliers=outliers,Q1=Q1,Q3=Q3,step=step))
 }
 ```
-
 
 
 
@@ -107,7 +106,7 @@ renderValueBox({
   if(is.null(input$file_data)){
     outliers_nb <-0
   }else{
-    outliers_nb <- sum(outliers())
+    outliers_nb <- sum(outliers()$outliers)
   }
   valueBox(outliers_nb,color="green")
 })
@@ -119,7 +118,7 @@ renderValueBox({
    if(is.null(input$file_data)){
     outliers_rate <-0
   }else{
-    outliers_rate <- round(sum(outliers())/nrow(data_in()$data)*100,digits = 1)
+    outliers_rate <- round(sum(outliers()$outliers)/nrow(data_in()$data)*100,digits = 1)
   }
   outliers_rate_format <- paste(outliers_rate,"%")
   valueBox(outliers_rate_format,color="green")
@@ -130,7 +129,7 @@ renderValueBox({
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Histogram {data-height=600}
+### Histogram with thresholds based on Tukey's test {data-height=600}
 
 ```{r}
 renderPlotly({
@@ -148,8 +147,12 @@ renderPlotly({
   
   p<- ggplot(data=data_in()$data,aes_string(input$var)) +
        geom_histogram(aes(y = ..density..),bins=as.numeric(input$nbBins),
-                  colour = "blue") +
+                  color="blue") +
        ggtitle(paste("Distribution of",input$var)) +
+       geom_vline(xintercept=outliers()$Q1-outliers()$step,
+                              color="darkgreen")+
+       geom_vline(xintercept=outliers()$Q3+outliers()$step,
+                              color="darkgreen")+
        #Overlay normal curve to histogram
        stat_function(fun = dnorm, #x=col_data,  
                         args=list(mean=params[1], sd=params[2]),
@@ -170,7 +173,7 @@ renderTable({
   if(is.null(input$file_data)){
     data.frame()
   }else{
-    data_in()$data[outliers(),]
+    data_in()$data[outliers()$outliers,]
   }
 })
 ```
@@ -180,7 +183,6 @@ Standard Deviation test {data-orientation=rows}
 
 
 ```{r}
-
 sd_test <- function(data,var)
 {
   sdfactor <- 2
