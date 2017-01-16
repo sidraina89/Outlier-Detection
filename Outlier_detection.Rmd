@@ -301,4 +301,21 @@ renderTable({
 
 ```
 
+Summary Statistics
+=====================================   
+
+```{r}
+renderTable({
+  	#Keep only numerical variables
+  	summary_base <- sapply(data_in()$data[,data_in()$var_numeric], function(x) summary(x))
+  	#Standard deviation not available in summary function
+  	std <- sapply(data_in()$data[,data_in()$var_numeric], function(x) sd(x))
+  	#summary_tbl <- data.frame(rbind(summary_base, std))
+  	summary_tbl <- data.frame(rbind(summary_base, std))
+  	summary_tbl$Statistics <- rownames(summary_tbl)
+  	summary_tbl  <-  summary_tbl[, rev(colnames(summary_tbl))]
+  	summary_tbl
+ 	})
+```
+
     
