@@ -15,6 +15,9 @@ library(ggplot2)
 library(plotly)
 library(knitr)
 library(fitdistrplus)
+library(readr)
+
+options(shiny.maxRequestSize=300*1024^2)
 ```
 
 ```{r}
@@ -26,7 +29,7 @@ data_in <- reactive({
 
     } else {
 
-      data<- read.csv(inFile$datapath,na.strings=c(""," ","NA"))
+      data<- read_csv(inFile$datapath)
 
       #Identify numeric, integer, logical, factor and character variables
       var<- names(data)
@@ -74,10 +77,10 @@ Tukey's test {data-orientation=rows}
 
 tukey_test <- function(data,var){
     #Calculate Q1 (25th percentile of the data) for the given vairiable
-    Q1 = quantile(data[,var],0.25)
+    Q1 = quantile(unlist(data[,var]),0.25)
     
     #Calculate Q3 (75th percentile of the data) for the given variable
-    Q3 = quantile(data[,var],0.75)
+    Q3 = quantile(unlist(data[,var]),0.75)
     
     #Use the interquartile range to calculate an outlier step (1.5 times the interquartile       range)
     step = 1.5*(Q3-Q1)
@@ -132,7 +135,7 @@ Column {data-width=650}
 ### Histogram with thresholds based on Tukey's test {data-height=600}
 
 ```{r}
-renderPlotly({
+renderPlot({
   #Display empty graph when there is no data
   if(is.null(input$file_data)){
     df <- data.frame()
@@ -159,7 +162,7 @@ renderPlotly({
                         lwd=2, col='red',alpha = 0.4)
     
   }
-   ggplotly(p)
+   p
   })
 ```
 
@@ -173,7 +176,11 @@ renderTable({
   if(is.null(input$file_data)){
     data.frame()
   }else{
-    data_in()$data[outliers()$outliers,]
+    if(length(outliers()$outliers)<1000){
+    data_in()$data[outliers()$outliers,]}
+    else{
+      head(data_in()$data[outliers()$outliers,],1000)
+    }
   }
 })
 ```
@@ -315,7 +322,7 @@ renderTable({
   	summary_tbl$Statistics <- rownames(summary_tbl)
   	summary_tbl  <-  summary_tbl[, rev(colnames(summary_tbl))]
   	summary_tbl
- 	})
+ })
 ```
 
     
